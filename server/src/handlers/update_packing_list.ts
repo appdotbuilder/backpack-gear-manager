@@ -1,15 +1,38 @@
 
+import { db } from '../db';
+import { packingListsTable } from '../db/schema';
 import { type UpdatePackingListInput, type PackingList } from '../schema';
+import { eq, sql } from 'drizzle-orm';
 
-export async function updatePackingList(input: UpdatePackingListInput): Promise<PackingList> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is updating an existing packing list in the database.
-  // It should update the specified fields and the updated_at timestamp.
-  return Promise.resolve({
-    id: input.id,
-    name: 'Updated List',
-    description: null,
-    created_at: new Date(),
-    updated_at: new Date()
-  } as PackingList);
-}
+export const updatePackingList = async (input: UpdatePackingListInput): Promise<PackingList> => {
+  try {
+    // Build the update object only with provided fields
+    const updateData: any = {
+      updated_at: sql`now()` // Always update the timestamp
+    };
+
+    if (input.name !== undefined) {
+      updateData['name'] = input.name;
+    }
+
+    if (input.description !== undefined) {
+      updateData['description'] = input.description;
+    }
+
+    // Update the packing list
+    const result = await db.update(packingListsTable)
+      .set(updateData)
+      .where(eq(packingListsTable.id, input.id))
+      .returning()
+      .execute();
+
+    if (result.length === 0) {
+      throw new Error(`Packing list with ID ${input.id} not found`);
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('Packing list update failed:', error);
+    throw error;
+  }
+};

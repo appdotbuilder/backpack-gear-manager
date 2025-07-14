@@ -1,7 +1,19 @@
 
+import { db } from '../db';
+import { alternateProductsTable } from '../db/schema';
+import { eq } from 'drizzle-orm';
+
 export async function deleteAlternateProduct(id: number): Promise<{ success: boolean }> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is deleting an alternate product from the database.
-  // It should delete the alternate product from alternateProductsTable.
-  return Promise.resolve({ success: true });
+  try {
+    const result = await db.delete(alternateProductsTable)
+      .where(eq(alternateProductsTable.id, id))
+      .returning()
+      .execute();
+
+    // Return success based on whether a row was actually deleted
+    return { success: result.length > 0 };
+  } catch (error) {
+    console.error('Alternate product deletion failed:', error);
+    throw error;
+  }
 }

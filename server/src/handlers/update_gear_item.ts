@@ -1,19 +1,55 @@
 
+import { db } from '../db';
+import { gearItemsTable } from '../db/schema';
 import { type UpdateGearItemInput, type GearItem } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export async function updateGearItem(input: UpdateGearItemInput): Promise<GearItem> {
-  // This is a placeholder declaration! Real code should be implemented here.
-  // The goal of this handler is updating an existing gear item in the database.
-  // It should update the specified fields and the updated_at timestamp.
-  return Promise.resolve({
-    id: input.id,
-    packing_list_id: 1,
-    name: 'Updated Item',
-    individual_weight: 100,
-    quantity: 1,
-    category: 'other',
-    notes: null,
-    created_at: new Date(),
-    updated_at: new Date()
-  } as GearItem);
+  try {
+    // Build update object with only provided fields
+    const updateData: any = {
+      updated_at: new Date()
+    };
+
+    if (input.name !== undefined) {
+      updateData.name = input.name;
+    }
+
+    if (input.individual_weight !== undefined) {
+      updateData.individual_weight = input.individual_weight.toString();
+    }
+
+    if (input.quantity !== undefined) {
+      updateData.quantity = input.quantity;
+    }
+
+    if (input.category !== undefined) {
+      updateData.category = input.category;
+    }
+
+    if (input.notes !== undefined) {
+      updateData.notes = input.notes;
+    }
+
+    // Update the gear item
+    const result = await db.update(gearItemsTable)
+      .set(updateData)
+      .where(eq(gearItemsTable.id, input.id))
+      .returning()
+      .execute();
+
+    if (result.length === 0) {
+      throw new Error('Gear item not found');
+    }
+
+    // Convert numeric fields back to numbers before returning
+    const gearItem = result[0];
+    return {
+      ...gearItem,
+      individual_weight: parseFloat(gearItem.individual_weight)
+    };
+  } catch (error) {
+    console.error('Gear item update failed:', error);
+    throw error;
+  }
 }
